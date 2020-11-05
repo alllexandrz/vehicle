@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/streadway/amqp"
-	"github.com/heptiolabs/healthcheck"
 )
 
 var (
@@ -41,13 +40,16 @@ func mustGetenv(k string) string {
 	return v
 }
 
+func RedinessProbe(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Im ready ))), %s!", r.URL.Path[1:])
+}
+
 func main() {
 
-	health := healthcheck.NewHandler()
-	health.AddReadinessCheck(
-		"upstream-dep-dns",
-		healthcheck.DNSResolveCheck("rabbitmq.infra.svc.cluster.local", 50*time.Millisecond))
-	go http.ListenAndServe("0.0.0.0:3000", health)
+
+
+	http.HandleFunc("/ready", RedinessProbe)
+	go http.ListenAndServe(":3000", nil)
 
 
 	conn, err := amqp.Dial( mustGetenv("RABBITMQ_CON_STRING"))
