@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/streadway/amqp"
+	"github.com/heptiolabs/healthcheck"
 )
 
 var (
@@ -40,6 +42,14 @@ func mustGetenv(k string) string {
 }
 
 func main() {
+
+	health := healthcheck.NewHandler()
+	health.AddReadinessCheck(
+		"upstream-dep-dns",
+		healthcheck.DNSResolveCheck("rabbitmq.infra.svc.cluster.local", 50*time.Millisecond))
+	go http.ListenAndServe("0.0.0.0:3000", health)
+
+
 	conn, err := amqp.Dial( mustGetenv("RABBITMQ_CON_STRING"))
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
